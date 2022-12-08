@@ -1,0 +1,9 @@
+server:
+  ip: 127.0.0.1 
+  port: 8080 
+db:
+  host: 127.0.0.1 
+  port: 5432 
+  user: test_db 
+  password: test_db 
+  name: test_db 

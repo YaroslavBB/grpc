@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:14.5-alpine
+    environment:
+      TZ: 'GMT+5'
+      PGTZ: 'Asia/Tashkent'
+      POSTGRES_USER: test_db
+      POSTGRES_PASSWORD: test_db
+      POSTGRES_DB: test_db
+      PGDATA: /data
+    volumes:
+      - ./pg/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_db"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "127.0.0.1:5432:5432"

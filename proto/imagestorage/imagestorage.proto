@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package imagestorage;
+option go_package = './imagestorage';
+
+import "google/protobuf/timestamp.proto";
+
+service ImageStorage {
+    rpc SaveImage(Image) returns (SaveImageResponse) {}
+    rpc FindImage(FindImageRequest) returns (Image) {}
+    rpc LoadImageList(LoadImageListRequest) returns (ImageInfoList) {}
+}
+
+message Image {
+    bytes file = 1;
+    string fileType = 2;
+}
+
+message ImageInfoList {
+   repeated ImageInfo images = 1;
+}
+
+message ImageInfo {
+    string filename = 1;
+    google.protobuf.Timestamp createdDate = 2;
+    google.protobuf.Timestamp updatedDate = 3;
+}
+
+message FindImageRequest {
+    string filename = 1;
+}
+
+message SaveImageResponse {}
+
+message LoadImageListRequest {}
