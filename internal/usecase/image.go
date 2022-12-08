@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"grpc/app/internal/entity"
 	"grpc/app/internal/repository"
 	"grpc/app/proto/imagestorage"
 	"image"
 	"image/jpeg"
 	"math/rand"
 	"os"
+	"regexp"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -36,18 +38,16 @@ func (u *ImageUsecase) SaveImage(ctx context.Context, in *imagestorage.Image) (*
 	img, _, err := image.Decode(reader)
 	if err != nil {
 		u.log.Errorln(err)
-		return &imagestorage.SaveImageResponse{}, err
+		return nil, err
 	}
 
 	fileName := fmt.Sprintf("%s.%s", randStringRunes(10), in.FileType)
 	filePath := fmt.Sprintf("%s%s", imagePath, fileName)
 
-	fmt.Println(fileName)
-
 	out, err := os.Create(filePath)
 	if err != nil {
 		u.log.Errorln(err)
-		return &imagestorage.SaveImageResponse{}, err
+		return nil, err
 	}
 	defer out.Close()
 
@@ -57,25 +57,23 @@ func (u *ImageUsecase) SaveImage(ctx context.Context, in *imagestorage.Image) (*
 	err = jpeg.Encode(out, img, &opt)
 	if err != nil {
 		u.log.Errorln(err)
-		return &imagestorage.SaveImageResponse{}, err
+		return nil, err
 	}
 
 	err = u.ImageRepository.SaveImage(fileName)
 	if err != nil {
 		u.log.Errorln(err)
-		return &imagestorage.SaveImageResponse{}, err
+		return nil, err
 	}
 
-	return &imagestorage.SaveImageResponse{}, nil
+	return nil, nil
 }
 
 func (u *ImageUsecase) LoadImageList(ctx context.Context, in *imagestorage.LoadImageListRequest) (*imagestorage.ImageInfoList, error) {
 	data, err := u.ImageRepository.LoadImageList()
 	if err != nil {
 		u.log.Errorln(err)
-		return &imagestorage.ImageInfoList{
-			Images: nil,
-		}, err
+		return nil, err
 	}
 	pbdata := make([]*imagestorage.ImageInfo, 0)
 	for _, d := range data {
@@ -92,6 +90,10 @@ func (u *ImageUsecase) LoadImageList(ctx context.Context, in *imagestorage.LoadI
 }
 
 func (u *ImageUsecase) FindImage(ctx context.Context, in *imagestorage.FindImageRequest) (*imagestorage.Image, error) {
+	fileType := fileTypeRE.FindAllString(in.Filename, -1)
+	if len(fileType) == 0 {
+		return nil, entity.ErrIncorrectFileType
+	}
 	filePath := fmt.Sprintf("%s%s", imagePath, in.Filename)
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -109,11 +111,14 @@ func (u *ImageUsecase) FindImage(ctx context.Context, in *imagestorage.FindImage
 
 	return &imagestorage.Image{
 		File:     buf.Bytes(),
-		FileType: "",
+		FileType: fileType[0],
 	}, err
 }
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var (
+	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	fileTypeRE  = regexp.MustCompile(`\.[a-zAZ]+$`)
+)
 
 func randStringRunes(n int) string {
 	b := make([]rune, n)
