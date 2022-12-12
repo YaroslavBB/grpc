@@ -25,7 +25,7 @@ func NewGRPCServer(u imagestorage.ImageStorageServer, log *logrus.Logger, conf *
 }
 
 func (e *GRPCServer) Run() {
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.MaxConcurrentStreams(100))
 
 	imagestorage.RegisterImageStorageServer(server, e.ImageStorageServer)
 
